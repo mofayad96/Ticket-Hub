@@ -1,25 +1,55 @@
-version: '3.8'
 services:
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
+  node-app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    networks:
+      - fullstackapp
+    env_file:
+      - ./backend/.env
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-  mongo-express:
-    image: mongo-express:1
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_SERVER: mongo
-      ME_CONFIG_BASICAUTH: 'false'
+      - "4000:4000"
     depends_on:
       - mongo
+  react-app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - fullstackapp
+    ports:
+      - 5173:80
+  mongo: 
+    image: mongo
+    restart: always
+    networks:
+      - fullstackapp
+    volumes:
+      - myfullstackvol:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    networks:
+      - fullstackapp
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/?authSource=admin
+      ME_CONFIG_BASICAUTH_ENABLED: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: mongoexpressuser
+      ME_CONFIG_BASICAUTH_PASSWORD: mongoexpresspass
+    depends_on:
+      - mongo
+
+networks:
+  fullstackapp:
+    driver: bridge
 volumes:
-  mongo_data:
-
-
-
-
+  myfullstackvol:
+  
