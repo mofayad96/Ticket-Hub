@@ -5,7 +5,7 @@ on:
         - "release/**"
       paths:
         - "src/**"
-    pull:
+    pull_request:
       branches:
         - master
         - "release/**"
