@@ -1,0 +1,15 @@
+name: first workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  example_job:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: print a welcome message
+        run: echo "welcome to out first gha workflow"
+       
