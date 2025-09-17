@@ -3,7 +3,7 @@ name: first workflow
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   example_job:
