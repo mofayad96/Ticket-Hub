@@ -4,5 +4,16 @@ on:
         - master
         - "release/**"
       paths:
-        - "backend/**"
-      
+        - "src/**"
+    pull:
+      branches:
+        - master
+        - "release/**"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v5.0.0
+      - name: run tests
+        run: npm test
