@@ -12,4 +12,9 @@ jobs:
     steps:
       - name: print a welcome message
         run: echo "welcome to out first gha workflow"
+      - name: checkout repository
+        uses: actions/checkout@v5.0.0
+      - name: List repo files
+        run: ls -la
+        
        
