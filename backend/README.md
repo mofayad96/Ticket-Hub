@@ -1,4 +1,4 @@
-EventX Backend
+Ticket-Hub Backend
 
 Environment
 - Copy `.env.example` to `.env` and fill values
