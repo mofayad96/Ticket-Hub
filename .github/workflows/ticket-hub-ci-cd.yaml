@@ -25,9 +25,10 @@ jobs:
           run: npm ci
         
         - name: SonarCloud Scan
+          working-directory: ./backend
           uses: SonarSource/sonarcloud-github-action@v2
           with:
             organization: mofayad96
             projectKey: mofayad96_ticket-hub
             token: ${{ secrets.SONAR_TOKEN_BACK }}
-          working-directory: ./backend
+          
