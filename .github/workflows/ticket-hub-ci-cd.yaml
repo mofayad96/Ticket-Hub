@@ -19,6 +19,16 @@ jobs:
           with:
             node-version: '22'       
             cache: 'npm' 
-        - name : build app using npm
+        
+        - name: build app using npm
+          working-directory: ./backend
           run: npm ci
+        - name: sonarqube static analysis
+          uses: SonarSource/sonarcloud-github-action@v2
+          working-directory: ./backend
+          run: npx sonar-scanner \
+            -Dsonar.projectKey=mofayad96_ticket-hub \
+            -Dsonar.organization=mofayad96 \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}    
         
