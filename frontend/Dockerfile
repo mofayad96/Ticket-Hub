@@ -1,20 +1,24 @@
-FROM node:22-alpine AS build
+# Use Node.js Alpine
+FROM node:22-alpine
 
+# Set working directory
 WORKDIR /app
 
-COPY package*.json .
-
+# Copy package.json and install dependencies
+COPY package*.json ./
 RUN npm ci
 
+# Copy all source files
 COPY . .
 
-RUN npm run build 
+# Build the app
+RUN npm run build
 
+# Install a small server to serve the build folder
+RUN npm install -g serve
 
-FROM nginx:alpine
+# Expose port
+EXPOSE 3000
 
-COPY --from=build /app/dist /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD [ "nginx","-g","daemon off;" ]
+# Start the server
+CMD ["serve", "-s", "dist", "-l", "3000"]
