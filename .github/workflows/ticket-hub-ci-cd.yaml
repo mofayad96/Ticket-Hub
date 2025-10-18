@@ -24,11 +24,14 @@ jobs:
           working-directory: ./backend
           run: npm ci
         
-        - name: SonarCloud Scan
-          working-directory: ./backend
+        - name: Run SonarCloud Scan
+          run: |
+            cd backend
+            echo "Running SonarCloud GitHub Action..."
+            # Or if using action, it must be run from root repo, no working-directory
           uses: SonarSource/sonarcloud-github-action@v2
           with:
             organization: mofayad96
             projectKey: mofayad96_ticket-hub
             token: ${{ secrets.SONAR_TOKEN_BACK }}
-          
+
