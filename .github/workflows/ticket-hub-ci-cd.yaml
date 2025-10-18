@@ -14,24 +14,18 @@ jobs:
       steps:
         - name: checkout code 
           uses: actions/checkout@v5.0.0
-        - name: Setup Node.js environment
-          uses: actions/setup-node@v6.0.0 
-          with:
-            node-version: '22'       
-            cache: 'npm' 
-        
-        - name: build app using npm
-          working-directory: ./backend
-          run: npm ci
-        
-        - name: Run SonarCloud Scan
-          run: |
-            cd backend
-            echo "Running SonarCloud GitHub Action..."
-            # Or if using action, it must be run from root repo, no working-directory
-          uses: SonarSource/sonarcloud-github-action@v2
-          with:
-            organization: mofayad96
-            projectKey: mofayad96_ticket-hub
-            token: ${{ secrets.SONAR_TOKEN_BACK }}
+        - name: Docker Setup Buildx 
+          uses: docker/setup-buildx-action@v3.11.1
 
+        - name: Docker Login
+          uses: docker/login-action@v3.5.0
+          with:
+            username: ${{secrets.DOCKER_USERNAME}} 
+            password: ${{secrets.DOCKER_PASS}}  
+        - name: Build and push Docker images
+          uses: docker/build-push-action@v6.18.0
+          with: 
+            context: ./backend
+            file: Dockerfile
+            push: true
+            tags:  deaddeal96/ticket-hub-back:latest
