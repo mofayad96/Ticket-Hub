@@ -1,16 +1,16 @@
-📖 Description
+ Description
 
 This repository contains the containerized version of Ticket Hub, a full-stack web application built with React (frontend), Node.js/Express (backend), and MongoDB (database). The app is fully Dockerized using Docker Compose, ensuring reproducibility, portability, and ease of deployment.
 
-⚡ Features
+Features
 
-🖥️ Frontend (React + Nginx) → Multi-stage Docker build for optimized production-ready static files.
+Frontend (React + Nginx) → Multi-stage Docker build for optimized production-ready static files.
 
-⚙️ Backend (Node.js/Express) → REST API handling core business logic and authentication.
+Backend (Node.js/Express) → REST API handling core business logic and authentication.
 
-🗄️ MongoDB with Mongo Express → Database persistence with a simple web-based admin dashboard.
+MongoDB with Mongo Express → Database persistence with a simple web-based admin dashboard.
 
-🐳 Docker & DevOps Practices:
+Docker & DevOps Practices:
 
 Multi-stage builds for smaller, secure images.
 
@@ -22,7 +22,7 @@ Persistent volumes for MongoDB data durability.
 
 Environment variables managed via .env for security and flexibility.
 
-🚀 Quick Start
+ Quick Start
 
 Clone the repo and spin up the entire stack with:
 
@@ -39,6 +39,3 @@ Backend API: http://localhost:4000
 
 Mongo Express: http://localhost:8081
 
-👨‍💻 Author
-
-Built & Dockerized by Mohamed Salah Fayad
