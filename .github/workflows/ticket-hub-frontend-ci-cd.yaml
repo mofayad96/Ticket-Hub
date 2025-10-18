@@ -26,6 +26,6 @@ jobs:
           uses: docker/build-push-action@v6.18.0
           with: 
             context: .
-            file: ./backend/Dockerfile
+            file: ./frontend/Dockerfile
             push: true
             tags:  deaddeal96/ticket-hub-front:latest
