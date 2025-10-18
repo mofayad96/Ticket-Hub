@@ -24,7 +24,6 @@ jobs:
           working-directory: ./backend
           run: npm ci
         - name: sonarqube static analysis
-          uses: SonarSource/sonarcloud-github-action@v2
           working-directory: ./backend
           run: npx sonar-scanner \
             -Dsonar.projectKey=mofayad96_ticket-hub \
