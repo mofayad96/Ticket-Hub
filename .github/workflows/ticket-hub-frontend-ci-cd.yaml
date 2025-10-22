@@ -41,3 +41,10 @@ jobs:
             file: ./frontend/Dockerfile
             push: true
             tags: deaddeal96/ticket-hub-front:latest
+
+        - name: Scan published Docker image
+          uses: aquasecurity/trivy-action@master
+          with:
+            image-ref: 'deaddeal96/ticket-hub-front:latest'
+            format: 'table'
+            severity: 'CRITICAL,HIGH'
