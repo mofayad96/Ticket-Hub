@@ -25,7 +25,7 @@ jobs:
         - name: Build frontend image
           uses: docker/build-push-action@v6
           with:
-            context: ./frontend       # all frontend files included
+            context: ./frontend       
             file: ./frontend/Dockerfile
             push: true
             tags: deaddeal96/ticket-hub-front:latest
