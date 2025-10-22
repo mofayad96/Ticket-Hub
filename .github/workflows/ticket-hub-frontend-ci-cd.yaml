@@ -42,17 +42,16 @@ jobs:
             push: true
             tags: deaddeal96/ticket-hub-front:latest
 
-        - name: Scan published Docker image
+        - name: Trivy vulnerability scan
           uses: aquasecurity/trivy-action@master
           with:
             image-ref: 'deaddeal96/ticket-hub-front:latest'
-            format: 'table'
+            format: 'json'
             severity: 'CRITICAL,HIGH'
-            output: 'trivy-report.txt'
+            output: '${{ github.workspace }}/trivy-report.json'
 
-
-        - name: Upload Trivy report
+        - name: Upload Trivy JSON report
           uses: actions/upload-artifact@v4
           with:
-            name: trivy-report
-            path: trivy-report.txt
+              name: trivy-report
+              path: '${{ github.workspace }}/trivy-report.json'
