@@ -49,3 +49,10 @@ jobs:
             format: 'table'
             severity: 'CRITICAL,HIGH'
             output: 'trivy-report.txt'
+
+
+        - name: Upload Trivy report
+          uses: actions/upload-artifact@v4
+          with:
+            name: trivy-report
+            path: trivy-report.txt
