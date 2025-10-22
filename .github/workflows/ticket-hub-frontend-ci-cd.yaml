@@ -48,3 +48,4 @@ jobs:
             image-ref: 'deaddeal96/ticket-hub-front:latest'
             format: 'table'
             severity: 'CRITICAL,HIGH'
+            output: 'trivy-report.txt'
