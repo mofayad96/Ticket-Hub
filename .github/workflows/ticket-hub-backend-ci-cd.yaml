@@ -49,12 +49,12 @@ jobs:
           uses: aquasecurity/trivy-action@master
           with:
             image-ref: 'deaddeal96/ticket-hub-back:latest'
-            format: 'json'
+            format: 'table'
             severity: 'CRITICAL,HIGH'
-            output: '${{ github.workspace }}/trivy-report2.json' 
+            output: '${{ github.workspace }}/trivy-report2.txt' 
 
-        - name: Upload Trivy JSON report
+        - name: Upload trivy report
           uses: actions/upload-artifact@v4
           with:
               name: trivy-report
-              path: '${{ github.workspace }}/trivy-report2.json'
+              path: '${{ github.workspace }}/trivy-report2.txt'
