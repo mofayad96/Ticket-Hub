@@ -20,7 +20,7 @@ services:
     ports:
       - 5173:80
   mongo: 
-    image: mongo
+    image: deaddeal96/ticket-hub-db:latest
     restart: always
     networks:
       - fullstackapp
