@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: ticket-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket-frontend
+  template:
+    metadata:
+      labels:
+        app: ticket-frontend
+    spec:
+      containers:
+      - name: ticket-frontend
+        image: deaddeal96/ticket-hub-front:latest
+        imagePullPolicy: IfNotPresent   
+        ports:
+        - containerPort: 5173
+        env:
+        - name: VITE_API_URL
+          value: http://ticket-backend-service:4000/api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-frontend-service
+spec:
+  selector:
+    app: ticket-frontend
+  ports:
+    - protocol: TCP
+      port: 5173
+      targetPort: 5173

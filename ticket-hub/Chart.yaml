@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ticket-hub
+description: A Helm chart for Ticket-Hub app (frontend + backend + MongoDB)
+version: 0.1.0
+appVersion: "1.0"
+
