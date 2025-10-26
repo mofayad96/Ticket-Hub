@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.5.10",
@@ -15,7 +15,6 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.23.0",
     "zustand": "^4.5.4"
-    
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
