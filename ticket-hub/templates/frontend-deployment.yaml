@@ -19,10 +19,10 @@ spec:
         image: deaddeal96/ticket-hub-front:latest
         imagePullPolicy: IfNotPresent   
         ports:
-        - containerPort: 5173
+        - containerPort: 3000
         env:
         - name: VITE_API_URL
-          value: http://ticket-backend-service:4000/api
+          value: http://ticket-hub.local/api
 ---
 apiVersion: v1
 kind: Service
@@ -33,5 +33,5 @@ spec:
     app: ticket-frontend
   ports:
     - protocol: TCP
-      port: 5173
-      targetPort: 5173
+      port: 3000
+      targetPort: 3000
