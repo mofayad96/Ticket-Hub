@@ -22,8 +22,7 @@ spec:
         - containerPort: 4000
         env:
         - name: MONGO_URI
-          value: mongodb://root:example@mongo-service:27017/?authSource=admin
-
+          value: mongodb://admin:12345@mongo-service:27017/?authSource=admin
         - name: JWT_SECRET 
           valueFrom: 
             secretKeyRef:
