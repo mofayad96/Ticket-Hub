@@ -1,26 +1,29 @@
 import { create } from 'zustand'
 import axios from 'axios'
 
-const api = axios.create({ 
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  withCredentials: true 
+const api = axios.create({
+  baseURL: '/api',  // Remove the env variable check
+  withCredentials: true
 })
 
 const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem('user') || 'null'),
   token: localStorage.getItem('token') || null,
+  
   async login(email, password) {
     const { data } = await api.post('/auth/login', { email, password })
     localStorage.setItem('user', JSON.stringify(data.user))
     localStorage.setItem('token', data.token)
     set({ user: data.user, token: data.token })
   },
+  
   async register(payload) {
     const { data } = await api.post('/auth/register', payload)
     localStorage.setItem('user', JSON.stringify(data.user))
     localStorage.setItem('token', data.token)
     set({ user: data.user, token: data.token })
   },
+  
   async me() {
     try {
       const token = localStorage.getItem('token')
@@ -30,6 +33,7 @@ const useAuthStore = create((set) => ({
       set({ user: data.user })
     } catch {}
   },
+  
   logout() {
     localStorage.removeItem('user')
     localStorage.removeItem('token')
@@ -38,5 +42,3 @@ const useAuthStore = create((set) => ({
 }))
 
 export default useAuthStore
-
-
