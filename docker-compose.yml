@@ -11,6 +11,7 @@ services:
       - "4000:4000"
     depends_on:
       - mongo
+
   react-app:
     build:
       context: ./frontend
@@ -18,7 +19,9 @@ services:
     networks:
       - fullstackapp
     ports:
-      - 5173:80
+      - 3000:3000
+
+      
   mongo: 
     image: deaddeal96/ticket-hub-db:latest
     restart: always

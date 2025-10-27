@@ -29,7 +29,7 @@ spec:
               name: backend-secrets
               key: JWT_SECRET
         - name: CLIENT_URL
-          value: http://ticket-frontend-service:5173
+          value: http://ticket-hub.local 
 
 ---
 apiVersion: v1
