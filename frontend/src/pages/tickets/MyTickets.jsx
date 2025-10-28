@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import useAuthStore from '../../store/auth'
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api', withCredentials: true })
+const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api', withCredentials: true })
 
 export default function MyTickets() {
   const [tickets, setTickets] = useState([])
