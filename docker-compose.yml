@@ -19,15 +19,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:4000/api
+        - VITE_API_URL=http://localhost:4000/api  # For browser access
     networks:
       - fullstackapp
-    environment:
-      - PORT=3000
-      - VITE_API_URL=http://localhost:4000/api
     ports:
       - "3000:3000"
-
+    depends_on:
+      - node-app  # Assuming your backend service is named 'backend'
       
   mongo: 
     image: deaddeal96/ticket-hub-db:latest

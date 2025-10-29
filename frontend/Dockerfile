@@ -1,9 +1,8 @@
 FROM node:22-alpine
-
 WORKDIR /app
 
-COPY package*.json ./
 
+COPY package*.json ./
 RUN npm ci
 
 
@@ -18,7 +17,7 @@ RUN npm run build
 RUN npm install -g serve
 
 
-ENV PORT=3000
 EXPOSE 3000
 
-CMD ["sh", "-c", "serve -s dist -l ${PORT}"]
+# Serve the built files
+CMD ["serve", "-s", "dist", "-l", "3000"]
