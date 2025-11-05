@@ -35,7 +35,7 @@ creating the vpc and aws networking steps
 
 5.1 allocating address for NAT
 
-    ``` aws ec2 allocate-address --domain vpc --region eu-central-1 ```
+``` aws ec2 allocate-address --domain vpc --region eu-central-1 ```
 
 5.2 creating NAT 
     ```aws ec2 create-nat-gateway --subnet-id subnet-035f3e26f8d4520a8 --allocation-id eipalloc-00b56558e01dba038 --region eu-central-1 --tag-specifications 'ResourceType=natgateway,Tags=[{Key=Name,Value=th-natgw}]'```
@@ -68,3 +68,6 @@ creating the vpc and aws networking steps
 7.3 associate RouteTable to the private subnet 
 
 ``` aws ec2 associate-route-table --subnet-id subnet-0b0172b6b7cc75db0 --route-table-id rtb-03373dd3d04957540 --region eu-central-1 ```
+
+
+
