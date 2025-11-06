@@ -17,7 +17,7 @@ spec:
       containers:
       - name: ticket-backend
         image: deaddeal96/ticket-hub-back:latest
-        imagePullPolicy: IfNotPresent   
+        imagePullPolicy: Always   
         ports:
         - containerPort: 4000
         env:

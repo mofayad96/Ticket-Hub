@@ -6,9 +6,7 @@ services:
     networks:
       - fullstackapp
     env_file:
-      - ./backend/.env
-    environment:
-      - CLIENT_URL=http://localhost:3000
+      - ./backend/.env.development
     ports:
       - "4000:4000"
     depends_on:
