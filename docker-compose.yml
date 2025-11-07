@@ -1,16 +1,16 @@
 services:
-  node-app:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    networks:
-      - fullstackapp
-    env_file:
-      - ./backend/.env.development
-    ports:
-      - "4000:4000"
-    depends_on:
-      - mongo
+  # node-app:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   networks:
+  #     - fullstackapp
+  #   env_file:
+  #     - ./backend/.env.development
+  #   ports:
+  #     - "4000:4000"
+  #   depends_on:
+  #     - mongo
 
   react-app:
     build:
@@ -22,8 +22,8 @@ services:
       - fullstackapp
     ports:
       - "3000:3000"
-    depends_on:
-      - node-app  
+    # depends_on:
+    #   - node-app  
       
   mongo: 
     image: deaddeal96/ticket-hub-db:latest

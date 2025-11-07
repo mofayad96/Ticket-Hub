@@ -1,1 +1,46 @@
-# this is going to be for aws
+# this is going to be for aws 
+services:
+  node-app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    networks:
+      - fullstackapp1
+    env_file:
+      - ./backend/.env.production
+    ports:
+      - "4000:4000"
+    
+  mongo: 
+    image: deaddeal96/ticket-hub-db:latest
+    restart: always
+    networks:
+          - fullstackapp1
+    volumes:
+          - myfullstackvol1:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    networks:
+      - fullstackapp
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/?authSource=admin
+      ME_CONFIG_BASICAUTH_ENABLED: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: mongoexpressuser
+      ME_CONFIG_BASICAUTH_PASSWORD: mongoexpresspass
+    depends_on:
+      - mongo
+
+networks:
+  fullstackapp1:
+    driver: bridge
+volumes:
+  myfullstackvol1:

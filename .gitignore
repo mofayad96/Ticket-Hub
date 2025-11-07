@@ -1,1 +1,43 @@
 mongo-backup
+# Ignore Terraform local files
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+
+# State files (contain sensitive data)
+terraform/*.tfstate
+terraform/*.tfstate.*
+
+# Terraform plan files
+terraform/*.tfplan
+
+# Crash logs
+terraform/crash.log
+terraform/crash.*.log
+
+# Sensitive variable files
+terraform/*.tfvars
+terraform/*.tfvars.json
+
+# Override files
+terraform/override.tf
+terraform/override.tf.json
+terraform/*_override.tf
+terraform/*_override.tf.json
+
+# Backup files
+terraform/*.bak
+terraform/*.backup
+
+# Terraform CLI config
+terraform/.terraformrc
+terraform/terraform.rc
+
+# IDE / Editor files
+terraform/.vscode/
+terraform/.idea/
+terraform/*.swp
+terraform/*.swo
+
+# OS specific junk
+terraform/.DS_Store
+terraform/Thumbs.db
