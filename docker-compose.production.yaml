@@ -1,4 +1,5 @@
 # this is going to be for aws 
+# don't forget to change docker image of back-end to the one you get from CI CD
 services:
   node-app:
     build:
