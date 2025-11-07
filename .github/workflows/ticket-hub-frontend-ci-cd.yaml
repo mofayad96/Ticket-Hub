@@ -39,7 +39,8 @@ jobs:
           with:
             context: ./frontend       
             file: ./frontend/Dockerfile
-            env-file: ./frontend/.env.production
+            build-args: |
+              VITE_API_URL=/api
             push: true
             tags: deaddeal96/ticket-hub-front:latest
 
