@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api', withCredentials: true })
+const api = axios.create({ baseURL: import.meta.env?.VITE_API_URL || '/1api', withCredentials: true })
 
 export default function Events() {
   const [events, setEvents] = useState([])
