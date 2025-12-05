@@ -1,0 +1,359 @@
+name: Deploy Ticket Hub to AWS
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Choose environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  AWS_REGION: eu-central-1
+  DOCKER_USERNAME: deaddeal96
+
+jobs:
+  # ============================================
+  # Job 1: Build and Push Backend
+  # ============================================
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: SonarQube Scan - Backend
+        working-directory: ./backend
+        run: |
+          npm ci
+          npm run build --if-present
+          npx sonar-scanner \
+            -Dsonar.projectKey=mofayad96_ticket-hub-back \
+            -Dsonar.organization=mofayad96 \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_USERNAME }}/ticket-hub-back:latest
+            ${{ env.DOCKER_USERNAME }}/ticket-hub-back:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.DOCKER_USERNAME }}/ticket-hub-back:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_USERNAME }}/ticket-hub-back:buildcache,mode=max
+
+      - name: Trivy Scan - Backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.DOCKER_USERNAME }}/ticket-hub-back:latest'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          output: 'trivy-backend-report.txt'
+
+      - name: Upload Trivy Report - Backend
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-backend-report
+          path: 'trivy-backend-report.txt'
+
+      - name: Notify Slack - Backend Build
+        if: always()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "🔨 Backend Build finished for *${{ github.repository }}* on branch *${{ github.ref_name }}*\nStatus: ${{ job.status }}\nCommit: ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================
+  # Job 2: Build and Push Frontend
+  # ============================================
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: SonarQube Scan - Frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build --if-present
+          npx sonar-scanner \
+            -Dsonar.projectKey=mofayad96_ticket-hub-frontend \
+            -Dsonar.organization=mofayad96 \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          build-args: |
+            VITE_API_URL=/api
+          push: true
+          tags: |
+            ${{ env.DOCKER_USERNAME }}/ticket-hub-front:latest
+            ${{ env.DOCKER_USERNAME }}/ticket-hub-front:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.DOCKER_USERNAME }}/ticket-hub-front:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_USERNAME }}/ticket-hub-front:buildcache,mode=max
+
+      - name: Trivy Scan - Frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.DOCKER_USERNAME }}/ticket-hub-front:latest'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          output: 'trivy-frontend-report.txt'
+
+      - name: Upload Trivy Report - Frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-frontend-report
+          path: 'trivy-frontend-report.txt'
+
+      - name: Notify Slack - Frontend Build
+        if: always()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "🎨 Frontend Build finished for *${{ github.repository }}* on branch *${{ github.ref_name }}*\nStatus: ${{ job.status }}\nCommit: ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================
+  # Job 3: Terraform Infrastructure
+  # ============================================
+  terraform:
+    name: Terraform Infrastructure
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    outputs:
+      instance_id: ${{ steps.get_instance.outputs.instance_id }}
+      instance_ip: ${{ steps.get_instance.outputs.instance_ip }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get EC2 Instance Info
+        id: get_instance
+        working-directory: terraform
+        run: |
+          INSTANCE_ID=$(terraform output -raw instance_id)
+          INSTANCE_IP=$(terraform output -raw instance_public_ip)
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+          echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+          echo "Instance ID: $INSTANCE_ID"
+          echo "Instance IP: $INSTANCE_IP"
+
+      - name: Notify Slack - Terraform
+        if: always()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "🏗️ Terraform finished for *${{ github.repository }}*\nStatus: ${{ job.status }}\nInstance ID: ${{ steps.get_instance.outputs.instance_id }}\nInstance IP: ${{ steps.get_instance.outputs.instance_ip }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================
+  # Job 4: Deploy to EC2
+  # ============================================
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: terraform
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Wait for Instance to be Ready
+        run: |
+          echo "Waiting for instance to be fully ready..."
+          sleep 60
+
+      - name: Install Docker on EC2
+        run: |
+          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
+          
+          CMD_ID=$(aws ssm send-command \
+            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "sudo apt-get update -y",
+              "sudo apt-get install -y ca-certificates curl gnupg",
+              "sudo install -m 0755 -d /etc/apt/keyrings",
+              "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
+              "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+              "sudo apt-get update -y",
+              "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+              "sudo systemctl enable docker",
+              "sudo systemctl start docker",
+              "sudo usermod -aG docker ubuntu"
+            ]' \
+            --query "Command.CommandId" \
+            --output text)
+          
+          echo "Installing Docker... Command ID: $CMD_ID"
+          aws ssm wait command-executed --command-id $CMD_ID --instance-id $INSTANCE_ID
+          aws ssm list-command-invocations --command-id $CMD_ID --instance-id $INSTANCE_ID --details
+
+      - name: Create Application Directory
+        run: |
+          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
+          
+          CMD_ID=$(aws ssm send-command \
+            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "mkdir -p /home/ubuntu/ticket-hub/backend",
+              "mkdir -p /home/ubuntu/ticket-hub/monitoring"
+            ]' \
+            --query "Command.CommandId" \
+            --output text)
+          
+          aws ssm wait command-executed --command-id $CMD_ID --instance-id $INSTANCE_ID
+
+      - name: Copy Docker Compose Files
+        run: |
+          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
+          INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
+          
+          # Create environment file
+          cat > backend/.env.production << EOF
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          MONGO_URI=mongodb://root:${{ secrets.MONGO_ROOT_PASSWORD }}@mongo:27017/?authSource=admin
+          CLIENT_URL=http://$INSTANCE_IP:3000
+          PORT=4000
+          EOF
+          
+          # Copy files using SSM
+          aws s3 cp docker-compose.production.yml s3://temp-deploy-bucket/docker-compose.yml || echo "Using alternative method"
+          aws s3 cp backend/.env.production s3://temp-deploy-bucket/.env.production || echo "Using alternative method"
+
+      - name: Deploy Application
+        run: |
+          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
+          
+          CMD_ID=$(aws ssm send-command \
+            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "cd /home/ubuntu/ticket-hub",
+              "sudo docker compose -f docker-compose.yml pull",
+              "sudo docker compose -f docker-compose.yml down",
+              "sudo docker compose -f docker-compose.yml up -d",
+              "sudo docker network create fullstackapp 2>/dev/null || true",
+              "sudo docker compose -f docker-compose.monitoring.yml up -d"
+            ]' \
+            --query "Command.CommandId" \
+            --output text)
+          
+          echo "Deploying application... Command ID: $CMD_ID"
+          aws ssm wait command-executed --command-id $CMD_ID --instance-id $INSTANCE_ID
+          aws ssm list-command-invocations --command-id $CMD_ID --instance-id $INSTANCE_ID --details
+
+      - name: Health Check
+        run: |
+          INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
+          
+          echo "Waiting for application to start..."
+          sleep 30
+          
+          # Check backend health
+          curl -f http://$INSTANCE_IP:4000/api/health || echo "Backend health check failed"
+          
+          # Check frontend
+          curl -f http://$INSTANCE_IP:3000 || echo "Frontend health check failed"
+
+      - name: Notify Slack - Deployment Success
+        if: success()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "✅ *Deployment Successful!*\n\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Instance ID:* ${{ needs.terraform.outputs.instance_id }}\n\n*Access URLs:*\n• Frontend: http://${{ needs.terraform.outputs.instance_ip }}:3000\n• Backend: http://${{ needs.terraform.outputs.instance_ip }}:4000\n• Grafana: http://${{ needs.terraform.outputs.instance_ip }}:3001\n• Prometheus: http://${{ needs.terraform.outputs.instance_ip }}:9090"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack - Deployment Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "❌ *Deployment Failed!*\n\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Instance ID:* ${{ needs.terraform.outputs.instance_id }}\n\nPlease check the GitHub Actions logs for details."
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

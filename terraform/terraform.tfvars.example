@@ -1,0 +1,11 @@
+# Terraform Variables Example
+# Copy this file to terraform.tfvars and update with your values
+# DO NOT commit terraform.tfvars to git!
+
+# Your IP address for SSH and monitoring access
+# Get your current IP: curl ifconfig.me
+my_ip = "YOUR_IP_HERE/32"
+
+# EC2 instance type
+# Options: t2.micro, t2.small, t2.medium, t2.large
+instance_type = "t2.micro"

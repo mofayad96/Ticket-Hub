@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # Frontend - React Application
+  frontend:
+    image: deaddeal96/ticket-hub-front:latest
+    container_name: ticket-hub-frontend
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend - Node.js API
+  backend:
+    image: deaddeal96/ticket-hub-back:latest
+    container_name: ticket-hub-backend
+    pull_policy: always
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    ports:
+      - "4000:4000"
+    networks:
+      - app-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Database - MongoDB
+  mongo:
+    image: deaddeal96/ticket-hub-db:latest
+    container_name: ticket-hub-mongo
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # MongoDB Admin Interface (Optional - can be disabled in production)
+  mongo-express:
+    image: mongo-express:latest
+    container_name: ticket-hub-mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/?authSource=admin
+      ME_CONFIG_BASICAUTH_ENABLED: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: secure_password_change_me
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  mongo-data:
+    driver: local
+  mongo-config:
+    driver: local

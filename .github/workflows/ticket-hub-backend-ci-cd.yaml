@@ -43,6 +43,7 @@ jobs:
           with: 
             context: ./backend
             file: ./backend/Dockerfile
+            environment: ./backend/.env.production
             push: true
             tags:  deaddeal96/ticket-hub-back:latest
 

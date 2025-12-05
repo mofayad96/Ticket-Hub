@@ -2,11 +2,11 @@
 # don't forget to change docker image of back-end to the one you get from CI CD
 services:
   node-app:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: deaddeal96/ticket-hub-back
+    pull_policy: always
     networks:
       - fullstackapp1
+    #run time env
     env_file:
       - ./backend/.env.production
     ports:
@@ -15,6 +15,7 @@ services:
   mongo: 
     image: deaddeal96/ticket-hub-db:latest
     restart: always
+    pull_policy: always
     networks:
           - fullstackapp1
     volumes:

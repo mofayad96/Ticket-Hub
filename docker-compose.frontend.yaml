@@ -1,0 +1,12 @@
+services:
+  react-app:
+    image: deaddeal96/ticket-hub-front
+    pull_policy: always  
+    networks:
+      - front-end
+    ports:
+      - "3000:3000"
+
+networks:
+  front-end:
+    driver: bridge
