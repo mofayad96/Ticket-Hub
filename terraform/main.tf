@@ -6,16 +6,15 @@ terraform {
     }
   }
   required_version = ">= 1.2"
-
-  
 }
 
 provider "aws" {
-  region  = "eu-central-1"
- 
+  region = "eu-central-1"
 }
 
+# ------------------------
 # Data sources for existing infrastructure
+# ------------------------
 data "aws_vpc" "existing" {
   id = "vpc-0f462ce79c9a240c3"
 }
@@ -35,7 +34,6 @@ data "aws_internet_gateway" "existing" {
   }
 }
 
-# Latest Ubuntu AMI
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"]
@@ -44,16 +42,17 @@ data "aws_ami" "ubuntu" {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
-
 }
 
-# Security Group for Application Server
+# ------------------------
+# Security Group
+# ------------------------
 resource "aws_security_group" "app_sg" {
   name        = "ticket-hub-app-sg"
   description = "Security group for Ticket Hub application"
   vpc_id      = data.aws_vpc.existing.id
 
-  
+  # SSH access from anywhere
   ingress {
     description = "SSH access"
     from_port   = 22
@@ -62,16 +61,15 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTP access for frontend
+  # HTTP / HTTPS
   ingress {
-    description = "HTTP for frontend"
+    description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTPS access
   ingress {
     description = "HTTPS"
     from_port   = 443
@@ -80,7 +78,7 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Frontend React app port
+  # Frontend / Backend / Mongo / Monitoring
   ingress {
     description = "Frontend React app"
     from_port   = 3000
@@ -89,7 +87,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Backend API port
   ingress {
     description = "Backend API"
     from_port   = 4000
@@ -98,7 +95,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # MongoDB port (restrict to VPC)
   ingress {
     description = "MongoDB"
     from_port   = 27017
@@ -107,7 +103,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = [data.aws_vpc.existing.cidr_block]
   }
 
-  # Mongo Express
   ingress {
     description = "Mongo Express"
     from_port   = 8081
@@ -116,7 +111,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Monitoring - Grafana
   ingress {
     description = "Grafana"
     from_port   = 3001
@@ -125,7 +119,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Monitoring - Prometheus
   ingress {
     description = "Prometheus"
     from_port   = 9090
@@ -134,7 +127,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Monitoring - cAdvisor
   ingress {
     description = "cAdvisor"
     from_port   = 8080
@@ -158,35 +150,24 @@ resource "aws_security_group" "app_sg" {
     ManagedBy   = "terraform"
   }
 }
-resource "aws_iam_role" "ec2_role" {
+
+# ------------------------
+# Use existing IAM Role
+# ------------------------
+data "aws_iam_role" "ec2_role" {
   name = "ec2-ssm-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = { Service = "ec2.amazonaws.com" },
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
 }
 
-resource "aws_iam_role_policy_attachment" "ssm" {
-  role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-
-
-# EC2 Instance for Application with password-based SSH
+# ------------------------
+# EC2 Instance
+# ------------------------
 resource "aws_instance" "app_server" {
   ami                         = data.aws_ami.ubuntu.id
-  instance_type               = "t2.micro"   
+  instance_type               = "t2.micro"
   subnet_id                   = data.aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.app_sg.id]
   associate_public_ip_address = true
+  iam_instance_profile        = data.aws_iam_role.ec2_role.name
 
   # Password-based SSH (no key)
   user_data = <<-EOF
@@ -211,9 +192,9 @@ resource "aws_instance" "app_server" {
   }
 }
 
-
-
+# ------------------------
 # Outputs
+# ------------------------
 output "instance_id" {
   description = "ID of the EC2 instance"
   value       = aws_instance.app_server.id
@@ -223,8 +204,6 @@ output "instance_public_ip" {
   description = "Public IP address of the EC2 instance"
   value       = aws_instance.app_server.public_ip
 }
-
-
 
 output "security_group_id" {
   description = "ID of the security group"
