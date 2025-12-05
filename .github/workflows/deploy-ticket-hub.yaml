@@ -235,8 +235,8 @@ jobs:
 
       - name: Wait for Instance to be Ready
         run: |
-          echo "Waiting for instance to be fully ready..."
-          sleep 90
+          echo "Waiting for instance to be fully ready and cloud-init to complete..."
+          sleep 120
 
       - name: Setup SSH
         run: |
@@ -247,9 +247,34 @@ jobs:
           INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           ssh-keyscan -H $INSTANCE_IP >> ~/.ssh/known_hosts 2>/dev/null || true
 
+      - name: Test SSH Connection
+        env:
+          EC2_PASSWORD: "1234"
+        run: |
+          INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
+          
+          echo "Testing SSH connection to $INSTANCE_IP..."
+          
+          # Try SSH connection with retries
+          for i in {1..5}; do
+            echo "Attempt $i of 5..."
+            if sshpass -p "$EC2_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@$INSTANCE_IP "echo 'SSH connection successful'"; then
+              echo "✓ SSH connection established!"
+              break
+            else
+              echo "Connection failed, waiting 30 seconds..."
+              sleep 30
+            fi
+            
+            if [ $i -eq 5 ]; then
+              echo "❌ Failed to connect after 5 attempts"
+              exit 1
+            fi
+          done
+
       - name: Install Docker on EC2
         env:
-          EC2_PASSWORD: ${{ secrets.EC2_SSH_PASSWORD }}
+          EC2_PASSWORD: "1234"
         run: |
           INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           
@@ -268,7 +293,7 @@ jobs:
 
       - name: Create Application Directory
         env:
-          EC2_PASSWORD: ${{ secrets.EC2_SSH_PASSWORD }}
+          EC2_PASSWORD: "1234"
         run: |
           INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           
@@ -279,7 +304,7 @@ jobs:
 
       - name: Copy Files to EC2
         env:
-          EC2_PASSWORD: ${{ secrets.EC2_SSH_PASSWORD }}
+          EC2_PASSWORD: "1234"
         run: |
           INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           
@@ -306,7 +331,7 @@ jobs:
 
       - name: Deploy Application
         env:
-          EC2_PASSWORD: ${{ secrets.EC2_SSH_PASSWORD }}
+          EC2_PASSWORD: "1234"
         run: |
           INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           
