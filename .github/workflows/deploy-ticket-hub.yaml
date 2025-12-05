@@ -223,6 +223,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -233,53 +236,46 @@ jobs:
       - name: Wait for Instance to be Ready
         run: |
           echo "Waiting for instance to be fully ready..."
-          sleep 60
+          sleep 90
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PASSWORD }}" > ~/.ssh/ec2_password
+          chmod 600 ~/.ssh/ec2_password
+          
+          # Add EC2 to known hosts
+          INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
+          ssh-keyscan -H $INSTANCE_IP >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Install Docker on EC2
         run: |
-          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
+          INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           
-          CMD_ID=$(aws ssm send-command \
-            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "sudo apt-get update -y",
-              "sudo apt-get install -y ca-certificates curl gnupg",
-              "sudo install -m 0755 -d /etc/apt/keyrings",
-              "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
-              "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
-              "sudo apt-get update -y",
-              "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
-              "sudo systemctl enable docker",
-              "sudo systemctl start docker",
-              "sudo usermod -aG docker ubuntu"
-            ]' \
-            --query "Command.CommandId" \
-            --output text)
-          
-          echo "Installing Docker... Command ID: $CMD_ID"
-          aws ssm wait command-executed --command-id $CMD_ID --instance-id $INSTANCE_ID
-          aws ssm list-command-invocations --command-id $CMD_ID --instance-id $INSTANCE_ID --details
+          sshpass -f ~/.ssh/ec2_password ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP << 'ENDSSH'
+            sudo apt-get update -y
+            sudo apt-get install -y ca-certificates curl gnupg
+            sudo install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            sudo apt-get update -y
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            sudo systemctl enable docker
+            sudo systemctl start docker
+            sudo usermod -aG docker ubuntu
+          ENDSSH
 
       - name: Create Application Directory
         run: |
-          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
+          INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           
-          CMD_ID=$(aws ssm send-command \
-            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "mkdir -p /home/ubuntu/ticket-hub/backend",
-              "mkdir -p /home/ubuntu/ticket-hub/monitoring"
-            ]' \
-            --query "Command.CommandId" \
-            --output text)
-          
-          aws ssm wait command-executed --command-id $CMD_ID --instance-id $INSTANCE_ID
+          sshpass -f ~/.ssh/ec2_password ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP << 'ENDSSH'
+            mkdir -p /home/ubuntu/ticket-hub/backend
+            mkdir -p /home/ubuntu/ticket-hub/monitoring
+          ENDSSH
 
-      - name: Copy Docker Compose Files
+      - name: Copy Files to EC2
         run: |
-          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
           INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           
           # Create environment file
@@ -290,31 +286,32 @@ jobs:
           PORT=4000
           EOF
           
-          # Copy files using SSM
-          aws s3 cp docker-compose.production.yml s3://temp-deploy-bucket/docker-compose.yml || echo "Using alternative method"
-          aws s3 cp backend/.env.production s3://temp-deploy-bucket/.env.production || echo "Using alternative method"
+          # Copy files using scp
+          sshpass -f ~/.ssh/ec2_password scp -o StrictHostKeyChecking=no \
+            docker-compose.production.yml ubuntu@$INSTANCE_IP:/home/ubuntu/ticket-hub/docker-compose.yml
+          
+          sshpass -f ~/.ssh/ec2_password scp -o StrictHostKeyChecking=no \
+            backend/.env.production ubuntu@$INSTANCE_IP:/home/ubuntu/ticket-hub/backend/.env.production
+          
+          sshpass -f ~/.ssh/ec2_password scp -o StrictHostKeyChecking=no -r \
+            monitoring ubuntu@$INSTANCE_IP:/home/ubuntu/ticket-hub/
+          
+          sshpass -f ~/.ssh/ec2_password scp -o StrictHostKeyChecking=no \
+            docker-compose.monitoring.yml ubuntu@$INSTANCE_IP:/home/ubuntu/ticket-hub/
 
       - name: Deploy Application
         run: |
-          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
+          INSTANCE_IP="${{ needs.terraform.outputs.instance_ip }}"
           
-          CMD_ID=$(aws ssm send-command \
-            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "cd /home/ubuntu/ticket-hub",
-              "sudo docker compose -f docker-compose.yml pull",
-              "sudo docker compose -f docker-compose.yml down",
-              "sudo docker compose -f docker-compose.yml up -d",
-              "sudo docker network create fullstackapp 2>/dev/null || true",
-              "sudo docker compose -f docker-compose.monitoring.yml up -d"
-            ]' \
-            --query "Command.CommandId" \
-            --output text)
-          
-          echo "Deploying application... Command ID: $CMD_ID"
-          aws ssm wait command-executed --command-id $CMD_ID --instance-id $INSTANCE_ID
-          aws ssm list-command-invocations --command-id $CMD_ID --instance-id $INSTANCE_ID --details
+          sshpass -f ~/.ssh/ec2_password ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP << 'ENDSSH'
+            cd /home/ubuntu/ticket-hub
+            sudo docker compose -f docker-compose.yml pull
+            sudo docker compose -f docker-compose.yml down
+            sudo docker compose -f docker-compose.yml up -d
+            sudo docker network create fullstackapp 2>/dev/null || true
+            sudo docker compose -f docker-compose.monitoring.yml up -d
+            echo "Deployment complete!"
+          ENDSSH
 
       - name: Health Check
         run: |

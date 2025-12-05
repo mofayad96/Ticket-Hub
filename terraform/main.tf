@@ -152,21 +152,6 @@ resource "aws_security_group" "app_sg" {
 }
 
 # ------------------------
-# Use existing IAM Role
-# ------------------------
-data "aws_iam_role" "ec2_role" {
-  name = "ec2-ssm-role"
-}
-
-# ------------------------
-# IAM Instance Profile
-# ------------------------
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "ec2-ssm-profile"
-  role = data.aws_iam_role.ec2_role.name
-}
-
-# ------------------------
 # EC2 Instance
 # ------------------------
 resource "aws_instance" "app_server" {
@@ -175,7 +160,6 @@ resource "aws_instance" "app_server" {
   subnet_id                   = data.aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.app_sg.id]
   associate_public_ip_address = true
-  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
 
   # Password-based SSH
   user_data = <<-EOF
