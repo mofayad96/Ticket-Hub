@@ -19,9 +19,7 @@ env:
   DOCKER_USERNAME: deaddeal96
 
 jobs:
-  # ============================================
-  # Job 1: Build and Push Backend
-  # ============================================
+# build , push back
   build-backend:
     name: Build Backend
     runs-on: ubuntu-latest
@@ -87,9 +85,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  # ============================================
-  # Job 2: Build and Push Frontend
-  # ============================================
+# build , push front
   build-frontend:
     name: Build Frontend
     runs-on: ubuntu-latest
@@ -157,9 +153,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  # ============================================
-  # Job 3: Terraform Infrastructure
-  # ============================================
+# terraform
   terraform:
     name: Terraform Infrastructure
     runs-on: ubuntu-latest
@@ -218,9 +212,8 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  # ============================================
-  # Job 4: Deploy to EC2
-  # ============================================
+  # deploy to ec2
+
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest

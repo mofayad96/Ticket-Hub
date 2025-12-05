@@ -133,3 +133,10 @@ temp/
 .aws/
 credentials
 config
+
+./kiro
+QUICK_DEPLOY.md
+README.md
+SECURITY_CHECKLIST.md
+
+TERRAFORM_NOTES.md
